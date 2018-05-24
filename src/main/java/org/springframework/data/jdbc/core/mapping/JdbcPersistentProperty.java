@@ -15,6 +15,7 @@
  */
 package org.springframework.data.jdbc.core.mapping;
 
+import org.springframework.core.convert.TypeDescriptor;
 import org.springframework.data.mapping.PersistentProperty;
 
 /**
@@ -25,6 +26,8 @@ import org.springframework.data.mapping.PersistentProperty;
  * @since 1.0
  */
 public interface JdbcPersistentProperty extends PersistentProperty<JdbcPersistentProperty> {
+
+	boolean isReference();
 
 	/**
 	 * Returns the name of the column backing this property.
@@ -40,6 +43,14 @@ public interface JdbcPersistentProperty extends PersistentProperty<JdbcPersisten
 	 */
 	Class<?> getColumnType();
 
+	/**
+	 * The SQL type constant used when using this property as a parameter for a SQL statement.
+	 * @return Must not be {@code null}.
+	 *
+	 * @see java.sql.Types
+	 */
+	int getSqlType();
+
 	@Override
 	JdbcPersistentEntity<?> getOwner();
 
@@ -48,7 +59,8 @@ public interface JdbcPersistentProperty extends PersistentProperty<JdbcPersisten
 	String getKeyColumn();
 
 	/**
-	 * Returns if this property is a qualified property, i.e. a property referencing multiple elements that can get picked by a key or an index.
+	 * Returns if this property is a qualified property, i.e. a property referencing multiple elements that can get picked
+	 * by a key or an index.
 	 */
 	boolean isQualified();
 

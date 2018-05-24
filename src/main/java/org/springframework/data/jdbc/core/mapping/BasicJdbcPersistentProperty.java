@@ -15,6 +15,7 @@
  */
 package org.springframework.data.jdbc.core.mapping;
 
+import java.lang.reflect.Field;
 import java.time.ZonedDateTime;
 import java.time.temporal.Temporal;
 import java.util.Date;
@@ -23,6 +24,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import org.springframework.core.convert.TypeDescriptor;
+import org.springframework.data.jdbc.support.JdbcUtil;
 import org.springframework.data.mapping.Association;
 import org.springframework.data.mapping.PersistentEntity;
 import org.springframework.data.mapping.model.AnnotationBasedPersistentProperty;
@@ -81,6 +84,17 @@ class BasicJdbcPersistentProperty extends AnnotationBasedPersistentProperty<Jdbc
 		throw new UnsupportedOperationException();
 	}
 
+	@Override
+	public boolean isEntity() {
+		return super.isEntity() && !isReference();
+	}
+
+	@Override
+	public boolean isReference() {
+
+		return AggregateReference.class.isAssignableFrom(getRawType());
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * @see org.springframework.data.jdbc.core.mapping.model.JdbcPersistentProperty#getColumnName()
@@ -98,9 +112,19 @@ class BasicJdbcPersistentProperty extends AnnotationBasedPersistentProperty<Jdbc
 	@Override
 	public Class getColumnType() {
 
+		if (isReference()) {
+
+			return columnTypeForReference();
+		}
+
 		Class columnType = columnTypeIfEntity(getActualType());
 
 		return columnType == null ? columnTypeForNonEntity(getActualType()) : columnType;
+	}
+
+	@Override
+	public int getSqlType() {
+		return JdbcUtil.sqlTypeFor(getColumnType());
 	}
 
 	@Override
@@ -156,4 +180,13 @@ class BasicJdbcPersistentProperty extends AnnotationBasedPersistentProperty<Jdbc
 				.findFirst() //
 				.orElseGet(() -> ClassUtils.resolvePrimitiveIfNecessary(type));
 	}
+
+	private Class columnTypeForReference() {
+
+		Class<?> componentType = getTypeInformation().getRequiredComponentType().getType();
+		JdbcPersistentEntity<?> referencedEntity = context.getRequiredPersistentEntity(componentType);
+
+		return referencedEntity.getRequiredIdProperty().getColumnType();
+	}
+
 }

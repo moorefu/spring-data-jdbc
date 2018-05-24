@@ -58,7 +58,7 @@ public class JdbcMappingContext extends AbstractMappingContext<JdbcPersistentEnt
 
 	@Getter private final NamingStrategy namingStrategy;
 	@Getter private SimpleTypeHolder simpleTypeHolder;
-	private GenericConversionService conversions = getDefaultConversionService();
+	private final GenericConversionService conversions = getDefaultConversionService();
 
 	/**
 	 * Creates a new {@link JdbcMappingContext}.
@@ -85,6 +85,7 @@ public class JdbcMappingContext extends AbstractMappingContext<JdbcPersistentEnt
 		this.namingStrategy = namingStrategy;
 
 		customizer.customize(conversions);
+
 		setSimpleTypeHolder(new SimpleTypeHolder(CUSTOM_SIMPLE_TYPES, true));
 	}
 
@@ -143,7 +144,12 @@ public class JdbcMappingContext extends AbstractMappingContext<JdbcPersistentEnt
 		return conversions;
 	}
 
-	private static GenericConversionService getDefaultConversionService() {
+	@Override
+	protected boolean shouldCreatePersistentEntityFor(TypeInformation<?> type) {
+		return super.shouldCreatePersistentEntityFor(type) && !AggregateReference.class.isAssignableFrom(type.getType());
+	}
+
+	private GenericConversionService getDefaultConversionService() {
 
 		DefaultConversionService conversionService = new DefaultConversionService();
 		Jsr310Converters.getConvertersToRegister().forEach(conversionService::addConverter);

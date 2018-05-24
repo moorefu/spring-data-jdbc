@@ -26,6 +26,7 @@ import org.springframework.core.convert.ConversionService;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.data.convert.ClassGeneratingEntityInstantiator;
 import org.springframework.data.convert.EntityInstantiator;
+import org.springframework.data.jdbc.core.mapping.AggregateReferenceHandlingPropertyAccessor;
 import org.springframework.data.jdbc.core.mapping.JdbcMappingContext;
 import org.springframework.data.jdbc.core.mapping.JdbcPersistentEntity;
 import org.springframework.data.jdbc.core.mapping.JdbcPersistentProperty;
@@ -75,8 +76,8 @@ public class EntityRowMapper<T> implements RowMapper<T> {
 
 		T result = createInstance(resultSet);
 
-		ConvertingPropertyAccessor propertyAccessor = new ConvertingPropertyAccessor(entity.getPropertyAccessor(result),
-				conversions);
+		ConvertingPropertyAccessor propertyAccessor = new AggregateReferenceHandlingPropertyAccessor(
+				entity.getPropertyAccessor(result), conversions);
 
 		Object id = idProperty == null ? null : readFrom(resultSet, idProperty, "");
 
@@ -89,7 +90,10 @@ public class EntityRowMapper<T> implements RowMapper<T> {
 				Iterable<Object> allByProperty = accessStrategy.findAllByProperty(id, property);
 				propertyAccessor.setProperty(property, ITERABLE_OF_ENTRY_TO_MAP_CONVERTER.convert(allByProperty));
 			} else {
-				propertyAccessor.setProperty(property, readFrom(resultSet, property, ""));
+
+				final Object value = readFrom(resultSet, property, "");
+
+				propertyAccessor.setProperty(property, value);
 			}
 		}
 

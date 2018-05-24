@@ -22,8 +22,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.data.jdbc.core.mapping.ConversionCustomizer;
 import org.springframework.data.jdbc.core.mapping.JdbcMappingContext;
 import org.springframework.data.jdbc.core.mapping.NamingStrategy;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcOperations;
-import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 /**
  * Beans that must be registered for Spring Data JDBC to work.
@@ -39,7 +37,8 @@ public class JdbcConfiguration {
 	JdbcMappingContext jdbcMappingContext(Optional<NamingStrategy> namingStrategy,
 			Optional<ConversionCustomizer> conversionCustomizer) {
 
-		return new JdbcMappingContext(namingStrategy.orElse(NamingStrategy.INSTANCE),
+		final JdbcMappingContext jdbcMappingContext = new JdbcMappingContext(namingStrategy.orElse(NamingStrategy.INSTANCE),
 				conversionCustomizer.orElse(ConversionCustomizer.NONE));
+		return jdbcMappingContext;
 	}
 }

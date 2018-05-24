@@ -27,10 +27,10 @@ import java.util.stream.StreamSupport;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.dao.NonTransientDataAccessException;
+import org.springframework.data.jdbc.core.mapping.AggregateReferenceHandlingPropertyAccessor;
 import org.springframework.data.jdbc.core.mapping.JdbcMappingContext;
 import org.springframework.data.jdbc.core.mapping.JdbcPersistentEntity;
 import org.springframework.data.jdbc.core.mapping.JdbcPersistentProperty;
-import org.springframework.data.jdbc.support.JdbcUtil;
 import org.springframework.data.mapping.PersistentPropertyAccessor;
 import org.springframework.data.mapping.PropertyHandler;
 import org.springframework.data.mapping.PropertyPath;
@@ -261,13 +261,23 @@ public class DefaultDataAccessStrategy implements DataAccessStrategy {
 
 		MapSqlParameterSource parameters = new MapSqlParameterSource();
 
-		persistentEntity.doWithProperties((PropertyHandler<JdbcPersistentProperty>) property -> {
-			if (!property.isEntity()) {
-				Object value = persistentEntity.getPropertyAccessor(instance).getProperty(property);
+		final AggregateReferenceHandlingPropertyAccessor propertyAccessor = //
+				new AggregateReferenceHandlingPropertyAccessor( //
+						persistentEntity.getPropertyAccessor(instance), //
+						context.getConversions() //
+				);
 
-				Object convertedValue = convert(value, property.getColumnType());
-				parameters.addValue(property.getColumnName(), convertedValue, JdbcUtil.sqlTypeFor(property.getColumnType()));
+		persistentEntity.doWithProperties((PropertyHandler<JdbcPersistentProperty>) property -> {
+
+			if (property.isEntity()) {
+				return;
 			}
+
+			parameters.addValue( //
+					property.getColumnName(), //
+					propertyAccessor.getProperty(property, property.getColumnType()), //
+					property.getSqlType() //
+			);
 		});
 
 		return parameters;
@@ -341,15 +351,7 @@ public class DefaultDataAccessStrategy implements DataAccessStrategy {
 
 	private <V> V convert(Object from, Class<V> to) {
 
-		if (from == null) {
-			return null;
-		}
-
-		JdbcPersistentEntity<?> persistentEntity = context.getPersistentEntity(from.getClass());
-
-		Object id = persistentEntity == null ? null : persistentEntity.getIdentifierAccessor(from).getIdentifier();
-
-		return context.getConversions().convert(id == null ? from : id, to);
+		return context.getConversions().convert(from, to);
 	}
 
 	private SqlGenerator sql(Class<?> domainType) {
